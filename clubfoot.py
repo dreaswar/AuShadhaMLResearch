@@ -352,7 +352,7 @@ else:
         def _status(): return st.success(
             "Registration Status:\nPatient Registered")if state.REGISTRATION_STATUS else st.error("Registration Status:\nPatient Not Registered")
         st.header("Instructions & Updates")
-        st.info("Project Selected for Testing:\n" +
-                state.project_options.capitalize())
-        st.info("State of Date entry :\n" + state.progress.capitalize())
+        st.info("Project Selected:\n" +
+                state.project_options.title())
+        st.info("State of Data Entry :\n" + state.progress.capitalize())
         _status()
