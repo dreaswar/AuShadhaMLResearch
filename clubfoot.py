@@ -344,14 +344,15 @@ else:
         if(state.progress == 'visit' and state.REGISTRATION_STATUS == True):
             add_visit_form(state)
         elif(state.progress == 'registration' and state.REGISTRATION_STATUS == False):
-            st.text("<- Add a Patient First")
+            st.info("\u2190"+" Add a Patient First")
         else:
             st.error("Something is wrong here !. Please contact Developer")
 
     with col3:
+        def _status(): return st.success(
+            "Registration Status:\nPatient Registered")if state.REGISTRATION_STATUS else st.error("Registration Status:\nPatient Not Registered")
         st.header("Instructions & Updates")
-        st.write(state.project_options)
-        st.write(state.progress)
-        st.write(state.REGISTRATION_STATUS)
-
-    # state.sync()
+        st.info("Project Selected for Testing:\n" +
+                state.project_options.capitalize())
+        st.info("State of Date entry :\n" + state.progress.capitalize())
+        _status()
