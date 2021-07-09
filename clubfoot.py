@@ -12,13 +12,14 @@ import numpy as np
 import pandas as pd
 from datetime import datetime
 
+
 # Importing to create a Session State
 from streamlit.report_thread import get_report_ctx
 from streamlit.server.server import Server
 from streamlit.hashing import _CodeHasher
 
-patient_id_pickle = 'patient_ids.pickle'
 
+patient_id_pickle = 'patient_ids.pickle'
 REGISTRATION_STATUS = False
 
 
@@ -181,8 +182,59 @@ def fetch_next_id():
 ####################################################################
 
 
-def add_visit_form():
+def add_registration(state):
+    ''' Adding Registration '''
+
+    with st.form(key="clubfoot_form"):
+        st.subheader("Clubfoot Registration")
+        number_input = st.number_input(
+            label="Deidentified Patient No.",
+            step=1,
+            value=fetch_next_id(),
+            min_value=fetch_next_id(),
+            max_value=fetch_next_id())
+        date_of_reg = st.date_input("Date of Registration",
+                                    value=datetime.today(),
+                                    max_value=datetime.today(),
+                                    min_value=datetime.today(),
+                                    help="Registration Date")
+        side = st.selectbox("Unilateral / Bilateral",
+                            ["R", "L", "Bilateral"])
+        type_of_clubfoot = st.selectbox("Type of Clubfoot",
+                                        ['Idiopathic',
+                                         'Syndromic',
+                                         'Neurologic/Spinal Cord Anomaly Related'])
+        notes = st.text_area(label="Other Notes", value="NIL",
+                             max_chars=1000, help="If additional Notes")
+
+        submit_button = st.form_submit_button(
+            label="Start Registering Patient")
+
+        if submit_button:
+            if check_patient_id_conflict(number_input):
+                append_patient_ids(number_input, 'reg')
+                # st.write(read_patient_ids())
+                # number_input.value += 1
+                st.subheader("Registration Complete")
+                st.write("You have registered: ",
+                         number_input, " on: ", date_of_reg)
+                st.write("Side: ", side)
+                st.write("Type: ", type_of_clubfoot)
+                st.write("Additional Notes: ", notes)
+                REGISTRATION_STATUS = True
+                state.progress = 'visit'
+                state.REGISTRATION_STATUS = REGISTRATION_STATUS
+                # state.sync()
+            else:
+                state.progres = 'registration'
+                state.REGISTRATION_STATUS = False
+                REGISTRATION_STATUS = False
+                # state.sync()
+
+
+def add_visit_form(state):
     ''' Adding a Visit '''
+
     print("Displaying the Visit Addition Form")
     with st.form(key="visit-form"):
         st.subheader("Visit Registration")
@@ -209,20 +261,33 @@ def add_visit_form():
         add_visit_btn = st.form_submit_button(
             label="Add Visit")
 
+        if add_visit_btn:
+            st.subheader("Registration Complete")
+            REGISTRATION_STATUS = True
+            state.progress = 'complete'
+            state.REGISTRATION_STATUS = REGISTRATION_STATUS
+            # state.sync()
+        else:
+            state.progress = 'visit'
+            state.REGISTRATION_STATUS = True
+            REGISTRATION_STATUS = True
+            # state.sync()
+
+
+def process_col1(state):
+    if (state.progress == 'registration' and state.REGISTRATION_STATUS == False):
+        add_registration(state)
+    elif(state.progress == 'visit' and state.REGISTRATION_STATUS == True):
+        add_visit_form(state)
+    else:
+        st.error("Something is wrong here !. Please contact Developer")
+
 
 ################################# App ###################################
 
-# Initiate State
-# state = _get_state()
-# state.REGISTRATION_STATUS = REGISTRATION_STATUS
-# state.current_reg_no      = fetch_next_id()
-# state.registration_step   = 'Registration'
-# state.sync()
-
-# Title of the App
-st.title("AuShadhaML Research")
 
 # Subtitle and Description of Project
+st.title("AuShadhaML Research")
 st.write("Our Projects")
 
 # Project listing under AuShadhaML
@@ -248,16 +313,13 @@ registry_df = pd.DataFrame({
 
 st.write()
 
-
-# Sidebar Choice
-# np.random.seed(10)
-
+# Set State
 state = _get_state()
 
+# Sidebar Choice
 state.project_options = st.sidebar.selectbox(
     "Which Project do you want to test ?",
     projects_df['Project Name'])
-
 
 if state.project_options in ['Osteoporosis ML', 'Orthopaedic Fractures']:
     st.write("You Selected", state.project_options)
@@ -272,69 +334,22 @@ else:
     col1, col2, col3 = st.beta_columns(3)
 
     with col1:
-        with st.form(key="clubfoot_form"):
-            st.subheader("Clubfoot Registration")
-            number_input = st.number_input(
-                label="Deidentified Patient No.",
-                step=1,
-                value=fetch_next_id(),
-                min_value=fetch_next_id(),
-                max_value=fetch_next_id())
-            date_of_reg = st.date_input("Date of Registration",
-                                        value=datetime.today(),
-                                        max_value=datetime.today(),
-                                        min_value=datetime.today(),
-                                        help="Registration Date")
-            side = st.selectbox("Unilateral / Bilateral",
-                                ["R", "L", "Bilateral"])
-            type_of_clubfoot = st.selectbox("Type of Clubfoot",
-                                            ['Idiopathic',
-                                             'Syndromic',
-                                             'Neurologic/Spinal Cord Anomaly Related'])
-            notes = st.text_area(label="Other Notes", value="NIL",
-                                 max_chars=1000, help="If additional Notes")
-
-            submit_button = st.form_submit_button(
-                label="Start Registering Patient")
-
-            if submit_button:
-                if check_patient_id_conflict(number_input):
-                    append_patient_ids(number_input, 'reg')
-                    # st.write(read_patient_ids())
-                    # number_input.value += 1
-                    st.subheader("Registration Complete")
-                    st.write("You have registered: ",
-                             number_input, " on: ", date_of_reg)
-                    st.write("Side: ", side)
-                    st.write("Type: ", type_of_clubfoot)
-                    st.write("Additional Notes: ", notes)
-                    REGISTRATION_STATUS = True
-                    state.progress = 'visit'
-                    state.REGISTRATION_STATUS = REGISTRATION_STATUS
-                    # state.sync()
-                else:
-                    state.progres = 'registration'
-                    state.REGISTRATION_STATUS = False
-                    REGISTRATION_STATUS = False
-                    # state.sync()
-
-    with col2:
-        if state.progress == 'visit' and state.REGISTRATION_STATUS is True:
-            visit_placeholder = st.empty()
-            add_visit_form()
-            # state = _get_state()
-            # state.sync()
+        if (state.progress == 'registration' and state.REGISTRATION_STATUS == False):
+            add_registration(state)
+        elif(state.progress == 'visit' and state.REGISTRATION_STATUS == True):
+            st.text("Add Visit Details  ->")
         else:
-            st.write("Step 2")
-
-        # if REGISTRATION_STATUS:
-        #     add_visit_btn = st.button("Add Visit Infomation")
-        #     if add_visit_btn:
+            st.error("Something is wrong here !. Please contact Developer")
+    with col2:
+        if(state.progress == 'visit' and state.REGISTRATION_STATUS == True):
+            add_visit_form(state)
+        elif(state.progress == 'registration' and state.REGISTRATION_STATUS == False):
+            st.text("<- Add a Patient First")
+        else:
+            st.error("Something is wrong here !. Please contact Developer")
 
     with col3:
-        #state = _get_state()
-        # state.sync()
-        # print(state)
+        st.header("Instructions & Updates")
         st.write(state.project_options)
         st.write(state.progress)
         st.write(state.REGISTRATION_STATUS)
