@@ -167,9 +167,9 @@ def process_col3(state):
     ''' Process the Third Column of the Layout '''
     def _status(): return st.success(
         "Registration Status:\nPatient Registered")if state.REGISTRATION_STATUS else st.error("Registration Status:\nPatient Not Registered")
-
     st.header("Instructions & Updates")
     st.info("Registry Choice:\n" +
             state.registry_choice.title())
     st.info("State of Data Entry :\n" + state.progress.capitalize())
     _status()
+
