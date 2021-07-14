@@ -73,20 +73,22 @@ def add_registration(state):
                             "Notes": [notes]
                             }
 
-                if (CLUBFOOT_REG_DF['ID'].empty):
-                    index_to_insert = 0
+                if (CLUBFOOT_REG_DF.empty):
+                    state.index_to_insert = 0
                     print("Initialized DataFrame Index...")
                 else:
                     print("Incrementing DataFrame Index..")
-                    index_to_insert = int(CLUBFOOT_REG_DF['ID'].iloc[-1])+1
-                    print(index_to_insert)
+                    state.index_to_insert = state.index_to_insert+1
+
+                print("Index: ", state.index_to_insert)
 
                 clubfoot_update = pd.DataFrame(
                     [[number_input, side, type_of_clubfoot, notes]],
                     columns=list(reg_data.keys()),
-                    index=[index_to_insert]
+                    index=[state.index_to_insert]
                 )
-                CLUBFOOT_REG_DF.append(clubfoot_update)
+
+                CLUBFOOT_REG_DF.append(clubfoot_update, ignore_index=True)
                 state.CHOSEN_REG_TABLE.add_rows(clubfoot_update)
 
             else:
@@ -143,6 +145,9 @@ def add_visit_form(state):
             REGISTRATION_STATUS = True
 
 
+#########Process Layout ################
+
+
 def process_col1(state):
     ''' Process the First Column of Layout '''
     if (state.progress == 'registration' and state.REGISTRATION_STATUS == False):
@@ -172,4 +177,3 @@ def process_col3(state):
             state.registry_choice.title())
     st.info("State of Data Entry :\n" + state.progress.capitalize())
     _status()
-
