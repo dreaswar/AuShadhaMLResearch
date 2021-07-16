@@ -19,6 +19,11 @@ from clubfoot import (process_col1,
                       process_col3)
 
 
+st.set_page_config(page_title="AuShadhaML",
+                   page_icon=":snake:",
+                   layout='wide',
+                   initial_sidebar_state='auto')
+
 # Constant to check Registration of patient
 REGISTRATION_STATUS = False
 
@@ -49,10 +54,15 @@ else:
     REGISTRY_TABLE_EXPANDER = st.beta_expander(
         label=state.registry_choice.capitalize()+' Data')
 
+    REGISTRY_CHART_EXPANDER = st.beta_expander(
+        label=state.registry_choice.capitalize()+' Charts/Graphs')
+
     state.progress = 'registration'
     state.REGISTRATION_STATUS = REGISTRATION_STATUS
 
     state.CHOSEN_REG_TABLE = REGISTRY_TABLE_EXPANDER.table(CLUBFOOT_REG_DF)
+    state.CHOSEN_CHART_EXPANDER = REGISTRY_CHART_EXPANDER
+
     st.write()
 
     # Layout Columns

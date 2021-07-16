@@ -6,10 +6,11 @@
 #########################################################################
 
 from datetime import datetime
-import pandas as pd
-import streamlit as st
 import pickle
 import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import streamlit as st
 
 from clubfoot_models import CLUBFOOT_REG_DF
 from registration_pickle_manager import (check_patient_id_conflict,
@@ -29,8 +30,13 @@ REGISTRATION_STATUS = False
 def add_registration(state):
     ''' Adding Registration '''
 
-    with st.form(key="clubfoot_form"):
-        st.subheader("Clubfoot Registration")
+    def _open(): return state.progress == 'registration'
+
+    reg_form = st.beta_expander(label="Step1: Patient Registration",
+                                expanded=_open())
+    reg_form.subheader("Clubfoot Registration")
+
+    with reg_form.form(key="clubfoot_form"):
         number_input = st.number_input(
             label="Deidentified Patient No.",
             step=1,
@@ -57,28 +63,34 @@ def add_registration(state):
         if submit_button:
             if check_patient_id_conflict(number_input):
                 append_patient_ids(number_input, 'reg')
-                st.subheader("Registration Complete")
-                st.write("You have registered: ",
-                         number_input, " on: ", date_of_reg)
-                st.write("Side: ", side)
-                st.write("Type: ", type_of_clubfoot)
-                st.write("Additional Notes: ", notes)
 
+                st.success("**Registration Complete**")
+                st.write("**You have registered: **",
+                         number_input, " on: ", date_of_reg)
+                st.info(
+                    "Please see the 'Clubfoot Data' table at the top for data stored")
+
+                # if data submitted properly change the state
                 REGISTRATION_STATUS = True
                 state.progress = 'visit'
                 state.REGISTRATION_STATUS = REGISTRATION_STATUS
 
+                # Collect the Form data as per Model Structure
                 reg_data = {
                     "ID": int(number_input),
                     "Side": side,
                     "Type": type_of_clubfoot,
                     "Notes": notes
                 }
+
+                # Prepare data for pandas frame
                 pkl_data = [int(number_input), side, type_of_clubfoot, notes]
 
+                # Initiate an empty list to hold all data to pass to pandas frame
                 all_data = []
                 print(reg_data)
 
+                # Check if the initial file size is 0 and if so initiate an empty pickle and close
                 if os.path.getsize('registration.pickle') == 0:
                     pickle_file = open('registration.pickle', 'wb')
                     init_list = []
@@ -86,6 +98,7 @@ def add_registration(state):
                     pickle_file.close()
                     print("Pickle Initiated")
 
+                # Start reading from pickle file to aggregaate the data and append new data
                 reg_pkl = open("registration.pickle", 'rb')
                 with reg_pkl as _f:
                     try:
@@ -99,6 +112,7 @@ def add_registration(state):
                         st.exception(e)
                 reg_pkl.close()
 
+                # Start a new pickle with write permission for writing all the data back
                 reg_pkl = open("registration.pickle", 'wb')
                 with reg_pkl as _f:
                     try:
@@ -110,20 +124,27 @@ def add_registration(state):
                         st.exception(e)
                 reg_pkl.close()
 
+                # Pass the data to the pandas fram / table for display
                 _process_and_update(reg_data, state)
 
             else:
                 state.progress = 'registration'
                 state.REGISTRATION_STATUS = False
                 REGISTRATION_STATUS = False
+                st.error(
+                    "Error Submittting the form. Please retry or contact administrator")
 
 
 def add_visit_form(state):
     ''' Adding a Visit '''
 
     print("Displaying the Visit Addition Form")
-    with st.form(key="visit-form"):
-        st.subheader("Visit Registration")
+    def _open(): return state.progress == 'visit'
+    visit_form = st.beta_expander(
+        label="Step:2 OPD Visit Form", expanded=_open())
+    visit_form.subheader("Visit Registration")
+    with visit_form.form(key="visit-form"):
+
         date_of_visit = st.date_input("Date of OutPatient Visit",
                                       value=datetime.today(),
                                       max_value=datetime.today(),
@@ -192,11 +213,11 @@ def process_col2(state):
 def process_col3(state):
     ''' Process the Third Column of the Layout '''
     def _status(): return st.success(
-        "Registration Status:\nPatient Registered")if state.REGISTRATION_STATUS else st.error("Registration Status:\nPatient Not Registered")
+        "Registration Status:\nPatient Registered")if state.REGISTRATION_STATUS else st.error("Registration Status:\nPatient awaiting Registration")
     st.header("Instructions & Updates")
     st.info("Registry Choice:\n" +
             state.registry_choice.title())
-    st.info("State of Data Entry :\n" + state.progress.capitalize())
+    st.info("Stage of Data Entry :\n" + state.progress.capitalize())
     _status()
 
 
