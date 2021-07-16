@@ -1,0 +1,1 @@
+CHOSEN_REG_TABLE = False

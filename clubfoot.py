@@ -14,7 +14,7 @@ from clubfoot_models import CLUBFOOT_REG_DF
 from registration_pickle_manager import (check_patient_id_conflict,
                                          fetch_next_id,
                                          append_patient_ids)
-
+#from global_vars import CHOSEN_REG_TABLE
 
 # Constants
 REGISTRATION_STATUS = False
@@ -67,29 +67,12 @@ def add_registration(state):
                 state.progress = 'visit'
                 state.REGISTRATION_STATUS = REGISTRATION_STATUS
 
-                reg_data = {"ID": [str(number_input)],
-                            "Side": [side],
-                            "Type": [type_of_clubfoot],
-                            "Notes": [notes]
+                reg_data = {"ID": str(number_input),
+                            "Side": side,
+                            "Type": type_of_clubfoot,
+                            "Notes": notes
                             }
-
-                if (CLUBFOOT_REG_DF.empty):
-                    state.index_to_insert = 0
-                    print("Initialized DataFrame Index...")
-                else:
-                    print("Incrementing DataFrame Index..")
-                    state.index_to_insert = state.index_to_insert+1
-
-                print("Index: ", state.index_to_insert)
-
-                clubfoot_update = pd.DataFrame(
-                    [[number_input, side, type_of_clubfoot, notes]],
-                    columns=list(reg_data.keys()),
-                    index=[state.index_to_insert]
-                )
-
-                CLUBFOOT_REG_DF.append(clubfoot_update, ignore_index=True)
-                state.CHOSEN_REG_TABLE.add_rows(clubfoot_update)
+                _process_and_update(reg_data, state)
 
             else:
                 state.progress = 'registration'
@@ -177,3 +160,32 @@ def process_col3(state):
             state.registry_choice.title())
     st.info("State of Data Entry :\n" + state.progress.capitalize())
     _status()
+
+
+def _process_and_update(reg_data, state):
+    ''' Update Data Frame and Table after Data Submission'''
+
+    #global CHOSEN_REG_TABLE
+    if (CLUBFOOT_REG_DF.empty and not state.index_to_insert):
+        state.index_to_insert = 0
+        print("Initialized DataFrame Index...")
+    else:
+        print("Incrementing DataFrame Index..")
+        state.index_to_insert = state.index_to_insert+1
+
+    print("Index: ", state.index_to_insert)
+
+    clubfoot_update = pd.DataFrame(
+        [[reg_data['ID'], reg_data['Side'],
+          reg_data['Type'], reg_data['Notes']
+          ]
+         ],
+        columns=list(reg_data.keys()),
+        index=[state.index_to_insert]
+    )
+
+    CLUBFOOT_REG_DF.append(clubfoot_update)
+    if (type(state.CHOSEN_REG_TABLE) == bool):
+        state.CHOSEN_REG_TABLE = st.table(clubfoot_update)
+    else:
+        state.CHOSEN_REG_TABLE.add_rows(clubfoot_update)
