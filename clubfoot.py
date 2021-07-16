@@ -8,13 +8,14 @@
 from datetime import datetime
 import pandas as pd
 import streamlit as st
-
+import pickle
+import os
 
 from clubfoot_models import CLUBFOOT_REG_DF
 from registration_pickle_manager import (check_patient_id_conflict,
                                          fetch_next_id,
                                          append_patient_ids)
-#from global_vars import CHOSEN_REG_TABLE
+# from global_vars import CHOSEN_REG_TABLE
 
 # Constants
 REGISTRATION_STATUS = False
@@ -67,11 +68,48 @@ def add_registration(state):
                 state.progress = 'visit'
                 state.REGISTRATION_STATUS = REGISTRATION_STATUS
 
-                reg_data = {"ID": str(number_input),
-                            "Side": side,
-                            "Type": type_of_clubfoot,
-                            "Notes": notes
-                            }
+                reg_data = {
+                    "ID": int(number_input),
+                    "Side": side,
+                    "Type": type_of_clubfoot,
+                    "Notes": notes
+                }
+                pkl_data = [int(number_input), side, type_of_clubfoot, notes]
+
+                all_data = []
+                print(reg_data)
+
+                if os.path.getsize('registration.pickle') == 0:
+                    pickle_file = open('registration.pickle', 'wb')
+                    init_list = []
+                    pickle.dump(init_list, pickle_file)
+                    pickle_file.close()
+                    print("Pickle Initiated")
+
+                reg_pkl = open("registration.pickle", 'rb')
+                with reg_pkl as _f:
+                    try:
+                        old_data = pickle.load(_f)
+                        all_data.append(pkl_data)
+                        for _l in old_data:
+                            if len(_l) > 0:
+                                all_data.append(_l)
+                    except Exception as e:
+                        print(e)
+                        st.exception(e)
+                reg_pkl.close()
+
+                reg_pkl = open("registration.pickle", 'wb')
+                with reg_pkl as _f:
+                    try:
+                        pickle.dump(all_data, reg_pkl)
+                        print(" Registration Stored ")
+                        st.balloons()
+                    except Exception as e:
+                        print(e)
+                        st.exception(e)
+                reg_pkl.close()
+
                 _process_and_update(reg_data, state)
 
             else:
@@ -165,7 +203,7 @@ def process_col3(state):
 def _process_and_update(reg_data, state):
     ''' Update Data Frame and Table after Data Submission'''
 
-    #global CHOSEN_REG_TABLE
+    # global CHOSEN_REG_TABLE
     if (CLUBFOOT_REG_DF.empty and not state.index_to_insert):
         state.index_to_insert = 0
         print("Initialized DataFrame Index...")
@@ -175,16 +213,16 @@ def _process_and_update(reg_data, state):
 
     print("Index: ", state.index_to_insert)
 
-    clubfoot_update = pd.DataFrame(
-        [[reg_data['ID'], reg_data['Side'],
-          reg_data['Type'], reg_data['Notes']
-          ]
-         ],
-        columns=list(reg_data.keys()),
-        index=[state.index_to_insert]
-    )
+    reg_pkl = open('registration.pickle', 'rb')
+    with reg_pkl as _f:
+        reg_table_data = pickle.load(_f)
+    reg_pkl.close()
+    print(reg_table_data)
+    clubfoot_update = pd.DataFrame(reg_table_data,
+                                   columns=list(reg_data.keys())
+                                   )
 
-    CLUBFOOT_REG_DF.append(clubfoot_update)
+    CLUBFOOT_REG_DF.append(clubfoot_update, ignore_index=True)
     if (type(state.CHOSEN_REG_TABLE) == bool):
         state.CHOSEN_REG_TABLE = st.table(clubfoot_update)
     else:
